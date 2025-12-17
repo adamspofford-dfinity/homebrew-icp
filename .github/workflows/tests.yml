@@ -44,4 +44,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bottles_${{ matrix.os }}
-          path: '*.bottle.*'
+          path: "*.bottle.*"
+
+  aggregate:
+    name: test:required
+    needs: test-bot
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - if: ${{ needs.test-bot.result != 'success' }}
+        run: exit 1
