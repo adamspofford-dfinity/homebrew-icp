@@ -16,3 +16,11 @@ brew "<formula>"
 ## Documentation
 
 `brew help`, `man brew` or check [Homebrew's documentation](https://docs.brew.sh).
+
+## License
+
+This project is licensed under the [Apache-2.0](./LICENSE) license.
+
+## Contribution
+
+This project does not accept external contributions. Pull requests from individuals outside the organization will be automatically closed.
