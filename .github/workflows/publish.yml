@@ -62,13 +62,13 @@ jobs:
           brew pr-pull --debug \
             --tap="$GITHUB_REPOSITORY" \
             --branch-okay "$PULL_REQUEST" \
-            --no-cherry-pick
+            --no-cherry-pick \
+            --clean
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@main
         with:
           branch: "publish.yml/pr-${{ github.event.inputs.pull_request }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create pull request
         run: |
