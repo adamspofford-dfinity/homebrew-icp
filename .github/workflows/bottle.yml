@@ -56,9 +56,11 @@ jobs:
           pr_branch=$(git rev-parse --abbrev-ref HEAD)
           pr_remote=$(git config --get branch."$pr_branch".remote)
           pr_remote_branch=$(git config --get branch."$pr_branch".merge | sed 's|^refs/heads/||')
-          echo "PR_BRANCH=$pr_branch" >> $GITHUB_ENV
-          echo "PR_REMOTE=$pr_remote" >> $GITHUB_ENV
-          echo "PR_REMOTE_BRANCH=$pr_remote_branch" >> $GITHUB_ENV
+          {
+            echo "PR_BRANCH=$pr_branch"
+            echo "PR_REMOTE=$pr_remote"
+            echo "PR_REMOTE_BRANCH=$pr_remote_branch"
+          } >> "$GITHUB_ENV"
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
