@@ -49,7 +49,9 @@ jobs:
           echo "Merge commit for PR #${PULL_REQUEST} is $merge_commit"
           pre_merge=$(git rev-parse "${merge_commit}^1")
           echo "Running brew pr-pull against $pre_merge"
-          git checkout -b "publish.yml/pr-${PULL_REQUEST}" "$pre_merge"
+          echo "MERGE_COMMIT=$merge_commit" >> $GITHUB_ENV
+          echo "PRE_MERGE_COMMIT=$pre_merge" >> $GITHUB_ENV
+          git checkout -b "publish.yml/pr-${PULL_REQUEST}" "$merge_commit"
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +61,7 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
         run: |
-          unset GITHUB_SHA # this command is astoundingly inflexible
+          export GITHUB_SHA="$PRE_MERGE_COMMIT" # this command is astoundingly inflexible
           brew pr-pull --debug \
             --tap="$GITHUB_REPOSITORY" \
             --branch-okay "$PULL_REQUEST" \
