@@ -1,4 +1,4 @@
-name: brew pr-pull
+name: Publish bottles from PR
 
 on:
   workflow_dispatch:
@@ -20,8 +20,11 @@ jobs:
     steps:
       - name: Ensure PR has been merged
         run: |
-          gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state \
-            | jq -e 'select(.state == "MERGED")'
+          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          if [[ $status != "MERGED" ]]; then
+            echo "Pull request has not been merged."
+            exit 1
+          fi
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,10 +39,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create PR branch
-        run: git checkout -b "publish.yml/pr-$PULL_REQUEST"
+      - name: Create comparison branch for PR
+        run: |
+          merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)
+          if [[ -z "$merge_commit" ]]; then
+            echo "Could not determine merge commit for PR #${PULL_REQUEST}"
+            exit 1
+          fi
+          echo "Merge commit for PR #${PULL_REQUEST} is $merge_commit"
+          pre_merge=$(git rev-parse "${merge_commit}^1")
+          echo "Running `brew pr-pull` against $pre_merge"
+          git checkout -b "publish.yml/pr-${PULL_REQUEST}" "$pre_merge"
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull bottles
         env:
