@@ -3,10 +3,16 @@ on:
   pull_request_target:
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: "The pull request number to upload bottles for"
+        required: true
+        type: number
 
 jobs:
   upload-bottles:
-    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'publish-to-tap') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'publish-to-tap')) }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -29,8 +35,8 @@ jobs:
         run: |
           merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)
           pre_merge_commit=$(git rev-parse "${merge_commit}^1")
-          git checkout -b temp-upload "$pre_merge_commit"
-          GITHUB_SHA="$merge_commit" \
+          git checkout -b temp-upload "$merge_commit"
+          GITHUB_SHA="$pre_merge_commit" \
             brew pr-pull --debug \
             --tap="$GITHUB_REPOSITORY" \
             --branch-okay "$PULL_REQUEST" \
@@ -38,5 +44,5 @@ jobs:
             --no-commit \
             --clean
         env:
-          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
