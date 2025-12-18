@@ -67,6 +67,7 @@ jobs:
             --branch-okay "$PULL_REQUEST" \
             --no-cherry-pick \
             --clean
+          git diff
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@main
