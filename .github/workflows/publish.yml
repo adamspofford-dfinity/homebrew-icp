@@ -1,14 +1,16 @@
 name: brew pr-pull
 
 on:
-  pull_request_target:
-    types:
-      - labeled
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number
+        type: number
+        required: true
 
 jobs:
   pr-pull:
-    if: contains(github.event.pull_request.labels.*.name, 'publish-to-tap')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       checks: read
@@ -16,6 +18,12 @@ jobs:
       issues: read
       pull-requests: write
     steps:
+      - name: Ensure PR has been merged
+        run: |
+          gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state \
+            | jq -e 'select(.state == "MERGED")'
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@main
         with:
@@ -23,20 +31,30 @@ jobs:
 
       - name: Set up git
         uses: Homebrew/actions/git-user-config@main
+        with:
+          username: publish.yml
+
+      - name: Create PR branch
+        run: git checkout -b "publish.yml/pr-$PULL_REQUEST"
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
 
       - name: Pull bottles
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PULL_REQUEST: ${{ github.event.pull_request.number }}
-        run: brew pr-pull --debug --tap="$GITHUB_REPOSITORY" "$PULL_REQUEST"
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+        run: brew pr-pull --debug --tap="$GITHUB_REPOSITORY" --branch-okay "$PULL_REQUEST"
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@main
         with:
-          branch: main
+          branch: "publish.yml/pr-${{ github.event.inputs.pull_request }}"
 
-      - name: Delete branch
-        if: github.event.pull_request.head.repo.fork == false
+      - name: Create pull request
+        run: |
+          gh pr create --repo "$GITHUB_REPOSITORY" \
+            --title "Publish bottles for PR #${PULL_REQUEST}" \
+            --body "Created automatically by publish.yml" \
+            --head "publish.yml/pr-${PULL_REQUEST}" --base main
         env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: git push --delete origin "$BRANCH"
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
