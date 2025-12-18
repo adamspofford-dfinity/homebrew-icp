@@ -1,0 +1,42 @@
+name: Upload bottles to release
+on:
+  pull_request_target:
+    types:
+      - closed
+
+jobs:
+  upload-bottles:
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'publish-to-tap') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Download bottles
+        run: |
+          merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)
+          pre_merge_commit=$(git rev-parse "${merge_commit}^1")
+          git checkout -b temp-upload "$pre_merge_commit"
+          GITHUB_SHA="$merge_commit" \
+            brew pr-pull --debug \
+            --tap="$GITHUB_REPOSITORY" \
+            --branch-okay "$PULL_REQUEST" \
+            --no-cherry-pick \
+            --no-commit \
+            --clean
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

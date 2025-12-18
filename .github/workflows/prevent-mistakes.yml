@@ -1,0 +1,17 @@
+name: Check if PR is intended for merging
+on:
+  pull_request:
+    types:
+      - opened
+      - unlabeled
+      - labeled
+
+jobs:
+  check:
+    name: confirm-publish:required
+    runs-on: ubuntu-latest
+    steps:
+      - if: ${{ !contains(github.event.pull_request.labels.*.name, 'merge-without-publishing') && !contains(github.event.pull_request.labels.*.name, 'publish-to-tap') }}
+        run: |
+          echo "Confirm merging without publish or run the publish workflow"
+          exit 1

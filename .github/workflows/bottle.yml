@@ -1,0 +1,92 @@
+name: Commit bottles to PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number
+        type: number
+        required: true
+
+jobs:
+  pr-pull:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: read
+      pull-requests: write
+    steps:
+      - name: Ensure PR is open, ready, and editable
+        run: |
+          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,maintainerCanModify,labels,statusCheckRollup)
+          if jq -e '.state != "OPEN"' <<< "$status"; then
+            echo "Pull request was closed or merged"
+            exit 1
+          fi
+          if jq -e '.maintainerCanModify == false' <<< "$status"; then
+            echo "Pull request does not allow edits from maintainers"
+            exit 1
+          fi
+          if jq -e '(.labels | map(.name)) | index("merge-without-publishing")' <<< "$status"; then
+            echo "Pull request has 'merge-without-publishing' label"
+            exit 1
+          fi
+          if jq -e '(.statusCheckRollup | map(select(.state != "SUCCESS" and (.name | contains(":required")) and .name != "confirm-publish:required"))) | length) > 0' <<< "$status"; then
+            echo "Pull request has pending required status checks"
+            exit 1
+          fi
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Check out PR
+        run: |
+          gh pr checkout "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY"
+          pr_branch=$(git rev-parse --abbrev-ref HEAD)
+          pr_remote=$(git config --get branch."$pr_branch".remote)
+          pr_remote_branch=$(git config --get branch."$pr_branch".merge | sed 's|^refs/heads/||')
+          echo "PR_BRANCH=$pr_branch" >> $GITHUB_ENV
+          echo "PR_REMOTE=$pr_remote" >> $GITHUB_ENV
+          echo "PR_REMOTE_BRANCH=$pr_remote_branch" >> $GITHUB_ENV
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull bottles
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+        run: |
+          GITHUB_SHA="$(git rev-parse HEAD)" \
+            brew pr-pull --debug \
+            --tap="$GITHUB_REPOSITORY" \
+            --branch-okay "$PULL_REQUEST" \
+            --no-cherry-pick \
+            --no-upload \
+            --clean
+
+      - name: Push commits
+        uses: Homebrew/actions/git-try-push@main
+        with:
+          branch: "${{ env.PR_BRANCH }}"
+          remote: "${{ env.PR_REMOTE }}"
+          remote_branch: "${{ env.PR_REMOTE_BRANCH }}"
+          tries: 5
+
+      - name: Add label
+        run: |
+          gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --add-label "publish-to-tap"
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
