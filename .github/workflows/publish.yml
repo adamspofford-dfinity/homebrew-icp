@@ -52,6 +52,12 @@ jobs:
           echo "MERGE_COMMIT=$merge_commit" >> $GITHUB_ENV
           echo "PRE_MERGE_COMMIT=$pre_merge" >> $GITHUB_ENV
           git checkout -b "publish.yml/pr-${PULL_REQUEST}" "$merge_commit"
+
+          git checkout main -- .github
+          if ! git diff --quiet; then
+            git add .github/**
+            git commit -m 'Update .github directory to match main branch'
+          fi
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,7 +73,6 @@ jobs:
             --branch-okay "$PULL_REQUEST" \
             --no-cherry-pick \
             --clean
-          git diff
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@main
