@@ -33,7 +33,7 @@ jobs:
             echo "Pull request has 'merge-without-publishing' label"
             exit 1
           fi
-          if jq -e '(.statusCheckRollup | map(select(.state != "SUCCESS" and (.name | contains(":required")) and .name != "confirm-publish:required"))) | length) > 0' <<< "$status"; then
+          if jq -e '(.statusCheckRollup | map(select(.state != "SUCCESS" and (.name | contains(":required")) and .name != "confirm-publish:required"))) | length > 0' <<< "$status"; then
             echo "Pull request has pending required status checks"
             exit 1
           fi
