@@ -68,6 +68,7 @@ jobs:
         uses: Homebrew/actions/git-try-push@main
         with:
           branch: "publish.yml/pr-${{ github.event.inputs.pull_request }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create pull request
         run: |
