@@ -66,6 +66,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull bottles
+        id: pull
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
@@ -76,7 +77,18 @@ jobs:
             --branch-okay "$PULL_REQUEST" \
             --no-cherry-pick \
             --no-upload \
-            --clean
+            --clean \
+            --retain-bottle-dir
+
+      - name: Create commits
+        run: |
+          (
+            cd "$BOTTLE_DIR" || exit 1
+            brew bottle --merge --write --debug *.bottle.json
+          )
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          BOTTLE_DIR: ${{ steps.pull.outputs.bottle_path }}
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@main
