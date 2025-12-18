@@ -48,7 +48,7 @@ jobs:
           fi
           echo "Merge commit for PR #${PULL_REQUEST} is $merge_commit"
           pre_merge=$(git rev-parse "${merge_commit}^1")
-          echo "Running `brew pr-pull` against $pre_merge"
+          echo "Running brew pr-pull against $pre_merge"
           git checkout -b "publish.yml/pr-${PULL_REQUEST}" "$pre_merge"
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
