@@ -20,12 +20,12 @@ jobs:
     steps:
       - name: Ensure PR is open, ready, and editable
         run: |
-          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,maintainerCanModify,labels,statusCheckRollup)
+          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,maintainerCanModify,labels,statusCheckRollup,isCrossRepository)
           if jq -e '.state != "OPEN"' <<< "$status"; then
             echo "Pull request was closed or merged"
             exit 1
           fi
-          if jq -e '.maintainerCanModify == false' <<< "$status"; then
+          if jq -e '.maintainerCanModify == false and .isCrossRepository == true' <<< "$status"; then
             echo "Pull request does not allow edits from maintainers"
             exit 1
           fi
