@@ -25,8 +25,9 @@ jobs:
       - name: Remove label
         id: remove_label
         run: |
+          git fetch origin "refs/pull/${PULL_REQUEST}/head:local-pr"
           labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
-          if [[ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
+          if [[ "$(git log local-pr -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
             gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
             echo 'label_removed=true' >> "$GITHUB_OUTPUT"
           fi
