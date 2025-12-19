@@ -1,12 +1,13 @@
-name: Remove stale publish-to-tap label
+name: Remove stale labels
 on:
-  pull_request:
+  pull_request_target:
     types:
       - synchronize
       - reopened
       - edited
+
 jobs:
-  untag:
+  unlabel:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'publish-to-tap') && github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     permissions:
