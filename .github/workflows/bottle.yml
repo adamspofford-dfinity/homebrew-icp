@@ -65,6 +65,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Check out PR
         run: |
           gh pr checkout "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY"
@@ -76,6 +77,17 @@ jobs:
             echo "PR_REMOTE=$pr_remote"
             echo "PR_REMOTE_BRANCH=$pr_remote_branch"
           } >> "$GITHUB_ENV"
+        env:
+          PULL_REQUEST: ${{ github.event.inputs.pull_request }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove publishing label if last commit was not from the bot
+        run: |
+          # %cn instead of %an corrects for rebased or squashed bot commits
+          last_author=$(git log -1 --format='%cn')
+          if [ "$last_author" != "github-actions[bot]" ]; then
+            gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
+          fi
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
