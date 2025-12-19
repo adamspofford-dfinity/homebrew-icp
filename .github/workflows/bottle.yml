@@ -66,8 +66,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          gh pr checkout "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY"
           pr_branch=$(git rev-parse --abbrev-ref HEAD)
           echo "PR_BRANCH=$pr_branch" >> "$GITHUB_ENV"
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull bottles
         id: pull
