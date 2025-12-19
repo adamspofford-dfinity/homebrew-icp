@@ -37,16 +37,12 @@ jobs:
             (
               .statusCheckRollup
               | map(select(
-                (
-                  .status != "COMPLETED"
-                  or (
-                    if (.name | contains(":required")) 
-                    then .conclusion != "SUCCESS"
-                    else .conclusion == "FAILURE"
-                    end
-                  )
+                .status != "COMPLETED"
+                or (
+                  .name | contains(":required")) 
+                  and .name != "confirm-publish:required"
+                  and .conclusion != "SUCCESS"
                 )
-                and .name != "confirm-publish:required"
               ))
             ) | length == 0' <<< "$status"
           then
