@@ -5,10 +5,9 @@ on:
       - closed
   workflow_dispatch:
     inputs:
-      pull_request:
-        description: "The pull request number to upload bottles for"
+      bottling_commit:
+        description: "The commit ID to upload bottles from"
         required: true
-        type: number
 
 jobs:
   upload-bottles:
@@ -18,10 +17,10 @@ jobs:
       actions: read
       checks: read
       contents: write
-      issues: read
       pull-requests: read
-    env:
-      PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
+    # This job has write permissions and checks out PR code on pull_request_target.
+    # Repo write access on pull_request_target is implicitly trusted because of the publish-to-tap label.
+    # On workflow_dispatch, PR code is not checked out.
     steps:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@main
@@ -35,14 +34,18 @@ jobs:
 
       - name: Find workflow run
         id: find_run
+        if: ${{ github.event_name == 'pull_request_target' }}
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid')
           if [[ -z "$merge_commit" ]]; then
             echo "Pull request #$PULL_REQUEST has no merge commit"
             exit 1
           fi
+          # Security: do not check out files from local-pr-branch
           git fetch origin +refs/pull/"$PULL_REQUEST"/head:local-pr-branch
-          git checkout local-pr-branch
           last_human_commit=$(git log --format="%H %cn" | grep -v ' github-actions\[bot\]' | head -n1 | awk '{print $1}')
           if [[ -z "$last_human_commit" ]]; then
             echo "No human commits found anywhere (bug?)"
@@ -57,14 +60,12 @@ jobs:
             exit 1
           fi
           echo "last_human_commit=$last_human_commit" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download bottles
         uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
           workflow: tests.yml
-          ref: ${{ steps.find_run.outputs.last_human_commit }}
+          ref: ${{ github.event_name == 'pull_request_target' && steps.find_run.outputs.last_human_commit || github.event.inputs.bottling_commit }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           name: ^bottles_.*
           name_is_regexp: true
@@ -78,5 +79,4 @@ jobs:
           cd .publish-bottles || exit 1
           brew pr-upload --debug --upload-only
         env:
-          PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

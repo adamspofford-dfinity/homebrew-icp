@@ -16,18 +16,18 @@ jobs:
       actions: read
       checks: read
       contents: read
-      issues: read
       pull-requests: write
+    # This job has write permissions. Do not check out PR code.
     outputs:
+      # This is an output so "if" can read it. Otherwise it'd have stale data
       label_removed: ${{ steps.remove_label.outputs.label_removed }}
     steps:
-      - uses: actions/checkout@v6
       - name: Remove label
         id: remove_label
         run: |
-          git fetch origin "refs/pull/${PULL_REQUEST}/head:local-pr"
           labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
-          if [[ "$(git log local-pr -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
+          last_commit_author=$(gh api repos/"$GITHUB_REPOSITORY"/pulls/"$PULL_REQUEST"/commits --jq '.[-1].commit.committer.name' )
+          if [[ "$last_commit_author" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
             gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
             echo 'label_removed=true' >> "$GITHUB_OUTPUT"
           fi

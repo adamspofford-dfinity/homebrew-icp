@@ -15,18 +15,19 @@ jobs:
       actions: read
       checks: read
       contents: write
-      issues: read
       pull-requests: write
+    # This job both checks out PR code and has write permissions. Do not remove the check against foreign PRs.
+    # On the off chance we start accepting third-party contributions, we'll need a different two-PR strategy.
     steps:
-      - name: Ensure PR is open, ready, and editable
+      - name: Ensure PR is ours, open, and ready
         run: |
-          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,maintainerCanModify,labels,statusCheckRollup,isCrossRepository)
-          if jq -e '.state != "OPEN"' <<< "$status"; then
-            echo "Pull request was closed or merged"
+          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,labels,statusCheckRollup,isCrossRepository)
+          if jq -e '.isCrossRepository != false' <<< "$status"; then
+            echo "Pull request is from a fork; cannot proceed"
             exit 1
           fi
-          if jq -e '.maintainerCanModify == false and .isCrossRepository == true' <<< "$status"; then
-            echo "Pull request does not allow edits from maintainers"
+          if jq -e '.state != "OPEN"' <<< "$status"; then
+            echo "Pull request was closed or merged"
             exit 1
           fi
           if jq -e '(.labels | map(.name)) | index("merge-without-publishing")' <<< "$status"; then
