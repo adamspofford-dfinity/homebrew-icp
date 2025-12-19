@@ -22,19 +22,19 @@ jobs:
       - name: Ensure PR is ours, open, and ready
         run: |
           status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,labels,statusCheckRollup,isCrossRepository)
-          if jq -e '.isCrossRepository != false' <<< "$status"; then
+          if ! jq -e '.isCrossRepository == false' <<< "$status"; then
             echo "Pull request is from a fork; cannot proceed"
             exit 1
           fi
-          if jq -e '.state != "OPEN"' <<< "$status"; then
+          if ! jq -e '.state == "OPEN"' <<< "$status"; then
             echo "Pull request was closed or merged"
             exit 1
           fi
-          if jq -e '(.labels | map(.name)) | index("merge-without-publishing")' <<< "$status"; then
+          if ! jq -e '(.labels | map(.name)) | index("merge-without-publishing") == null' <<< "$status"; then
             echo "Pull request has 'merge-without-publishing' label"
             exit 1
           fi
-          if jq -e '
+          if ! jq -e '
             (
               .statusCheckRollup
               | map(select(
@@ -49,7 +49,7 @@ jobs:
                 )
                 and .name != "confirm-publish:required"
               ))
-            ) | length > 0' <<< "$status"
+            ) | length == 0' <<< "$status"
           then
             echo "Pull request has pending status checks"
             exit 1
