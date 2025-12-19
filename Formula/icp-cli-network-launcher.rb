@@ -8,9 +8,9 @@ class IcpCliNetworkLauncher < Formula
 
   bottle do
     root_url "https://github.com/adamspofford-dfinity/homebrew-icp/releases/download/icp-cli-network-launcher-11.0.0_2"
-    sha256 cellar: :any_skip_relocation, arm64_sequoia: "f2b9f4320cfd06ae741ef4ecbb8885f1179f50bfc544640fbb20066ff92854c6"
-    sha256 cellar: :any_skip_relocation, arm64_linux:   "3cc10ce1e9439c67d836b04df66caadfb808d841315daebf6d94773cb3e80354"
-    sha256 cellar: :any_skip_relocation, x86_64_linux:  "4dd3f74f8fd48b4b0db5b982b4a830d373543c4a1d0432af97a47c7f4ad8b82c"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "534fcc049066b1723d2fb3ca4f74693425b9f2b4d3cbfa33dcf0438f5f217770"
+    sha256 cellar: :any_skip_relocation, arm64_linux:   "8ca4316fd65c4d4f1d9a1061fe163b8ea9b6db3b2bf762295f1ebf9ebb6f5671"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:  "e056eb055540fc469f78c90f0bc136b3204610f6a3236684056d773163fdb42e"
   end
 
   depends_on "jq" => :build
