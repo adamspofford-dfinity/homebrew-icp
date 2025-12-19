@@ -98,6 +98,8 @@ jobs:
         run: |
           cd "$BOTTLE_DIR" || exit 1
           brew bottle --merge --write --debug ./*.bottle.json
+          new_head=$(git rev-parse HEAD)
+          echo "NEW_HEAD=$new_head" >> "$GITHUB_ENV"
         env:
           BOTTLE_DIR: ${{ steps.pull.outputs.bottle_path }}
 
@@ -123,7 +125,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 name: check,
-                head_sha: context.payload.pull_request.head.sha,
+                head_sha: process.env.NEW_HEAD,
                 status: 'completed',
                 conclusion: 'success'
               });
