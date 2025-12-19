@@ -20,10 +20,12 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
-      - name: Remove tag
+      - name: Remove label
         run: |
-          if [ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]; then
+          labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')"
+          if [[ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q "^publish-to-tap$" <<< "$labels"; then
             gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
+            echo 'label_removed=true' >> "$GITHUB_OUTPUT"
           fi
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
@@ -34,7 +36,7 @@ jobs:
     needs: unlabel
     if: ${{ always() }}
     steps:
-      - if: ${{ !contains(github.event.pull_request.labels.*.name, 'merge-without-publishing') && !contains(github.event.pull_request.labels.*.name, 'publish-to-tap') }}
+      - if: ${{ (!contains(github.event.pull_request.labels.*.name, 'merge-without-publishing') && !contains(github.event.pull_request.labels.*.name, 'publish-to-tap')) || needs.unlabel.outputs.label_removed == 'true' }}
         run: |
           echo "Confirm merging without publish or run the publish workflow"
           exit 1
