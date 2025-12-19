@@ -7,10 +7,10 @@ class IcpCliNetworkLauncher < Formula
   revision 3
 
   bottle do
-    root_url "https://github.com/adamspofford-dfinity/homebrew-icp/releases/download/icp-cli-network-launcher-11.0.0_2"
-    sha256 cellar: :any_skip_relocation, arm64_sequoia: "534fcc049066b1723d2fb3ca4f74693425b9f2b4d3cbfa33dcf0438f5f217770"
-    sha256 cellar: :any_skip_relocation, arm64_linux:   "8ca4316fd65c4d4f1d9a1061fe163b8ea9b6db3b2bf762295f1ebf9ebb6f5671"
-    sha256 cellar: :any_skip_relocation, x86_64_linux:  "e056eb055540fc469f78c90f0bc136b3204610f6a3236684056d773163fdb42e"
+    root_url "https://github.com/adamspofford-dfinity/homebrew-icp/releases/download/icp-cli-network-launcher-11.0.0_3"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "f83521c9008679d5fb3c7499372c825eec0075372ce7ab8f64e0d98accd8af03"
+    sha256 cellar: :any_skip_relocation, arm64_linux:   "1b0fd8bfa5e08dee2c1123b60d376849138530c08c9ab9779a8cf911d871c47e"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:  "89feb5221418c109c174f72cb1a8be659e80d61d126d1e63e00ec52309d20d63"
   end
 
   depends_on "jq" => :build
