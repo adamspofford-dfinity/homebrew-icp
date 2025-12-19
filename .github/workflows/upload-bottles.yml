@@ -46,7 +46,7 @@ jobs:
           fi
           # Security: do not check out files from local-pr-branch
           git fetch origin +refs/pull/"$PULL_REQUEST"/head:local-pr-branch
-          last_human_commit=$(git log --format="%H %cn" | grep -v ' github-actions\[bot\]' | head -n1 | awk '{print $1}')
+          last_human_commit=$(git log local-pr-branch --format="%H %cn" | grep -v ' github-actions\[bot\]' | head -n1 | awk '{print $1}')
           if [[ -z "$last_human_commit" ]]; then
             echo "No human commits found anywhere (bug?)"
             exit 1
