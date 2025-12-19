@@ -76,7 +76,7 @@ jobs:
       - name: Upload bottles
         run: |
           cd .publish-bottles || exit 1
-          brew pr-upload --debug --no-commit --upload-only
+          brew pr-upload --debug --upload-only
         env:
           PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
