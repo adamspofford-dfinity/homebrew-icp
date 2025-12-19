@@ -39,10 +39,6 @@ jobs:
               .statusCheckRollup
               | map(select(
                 (
-                  .status != "COMPLETED"
-                  and .name != "bottle:command"
-                )
-                or (
                   (.name | contains(":required"))
                   and .name != "confirm-publish:required"
                   and .conclusion != "SUCCESS"
@@ -67,6 +63,10 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Unbork linuxbrew ruby install
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo chmod +t /home/linuxbrew/.linuxbrew/Homebrew/Library/Homebrew/vendor/bundle/ruby
 
       - name: Set up git
         run: |
@@ -122,8 +122,8 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            // We verified above that this is not an external PR, and that these required checks are passing
-            for (const check of JSON.parse(process.env.REQUIRED_CHECKS).concat(["External PR Ruleset"])) {
+            // We verified above that these required checks are passing
+            for (const check of JSON.parse(process.env.REQUIRED_CHECKS)) {
               await github.rest.checks.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
