@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      checks: read
+      checks: write
       contents: write
       pull-requests: write
     # This job both checks out PR code and has write permissions. Do not remove the check against foreign PRs.
@@ -53,6 +53,12 @@ jobs:
             echo "Pull request has pending status checks"
             exit 1
           fi
+          required_checks=$(jq -c '[.statusCheckRollup[].name | select(. | contains(":required"))]' <<< "$pr_status" | sort | uniq)
+          {
+            echo "REQUIRED_CHECKS<<EOF"
+            echo "$required_checks"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -108,15 +114,17 @@ jobs:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create the label status check
+      - name: Assert the required checks pass
         uses: actions/github-script@v8
         with:
           script: |
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'confirm-publish:required',
-              head_sha: context.payload.pull_request.head.sha,
-              status: 'completed',
-              conclusion: 'success'
-            })
+            for (const check of JSON.parse(process.env.REQUIRED_CHECKS)) {
+              await github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: check,
+                head_sha: context.payload.pull_request.head.sha,
+                status: 'completed',
+                conclusion: 'success'
+              });
+            }
