@@ -1,6 +1,6 @@
 name: Check if PR is intended for merging
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - reopened
@@ -9,9 +9,30 @@ on:
       - labeled
 
 jobs:
+  unlabel:
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'publish-to-tap') && github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Remove tag
+        run: |
+          if [ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]; then
+            gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
+          fi
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   check:
     name: confirm-publish:required
     runs-on: ubuntu-latest
+    needs: unlabel
+    if: ${{ always() }}
     steps:
       - if: ${{ !contains(github.event.pull_request.labels.*.name, 'merge-without-publishing') && !contains(github.event.pull_request.labels.*.name, 'publish-to-tap') }}
         run: |
