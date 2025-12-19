@@ -7,6 +7,7 @@ on:
 
 jobs:
   bottle:
+    name: bottle:command
     if: ${{ contains(github.event.pull_request.labels.*.name, '!add-bottles') && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
@@ -24,12 +25,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Ensure PR is ready
         run: |
-          status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,labels,statusCheckRollup)
-          if ! jq -e '.state == "OPEN"' <<< "$status"; then
+          pr_status=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json state,labels,statusCheckRollup)
+          if ! jq -e '.state == "OPEN"' <<< "$pr_status"; then
             echo "Pull request was closed or merged"
             exit 1
           fi
-          if ! jq -e '(.labels | map(.name)) | index("merge-without-publishing") == null' <<< "$status"; then
+          if ! jq -e '(.labels | map(.name)) | index("merge-without-publishing") == null' <<< "$pr_status"; then
             echo "Pull request has 'merge-without-publishing' label"
             exit 1
           fi
@@ -37,14 +38,17 @@ jobs:
             (
               .statusCheckRollup
               | map(select(
-                .status != "COMPLETED"
+                (
+                  .status != "COMPLETED"
+                  and .name != "bottle:command"
+                )
                 or (
                   (.name | contains(":required"))
                   and .name != "confirm-publish:required"
                   and .conclusion != "SUCCESS"
                 )
               ))
-            ) | length == 0' <<< "$status"
+            ) | length == 0' <<< "$pr_status"
           then
             echo "Pull request has pending status checks"
             exit 1
