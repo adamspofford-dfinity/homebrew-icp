@@ -36,11 +36,24 @@ jobs:
       - name: Find workflow run
         id: find_run
         run: |
+          merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid')
+          if [[ -z "$merge_commit" ]]; then
+            echo "Pull request #$PULL_REQUEST has no merge commit"
+            exit 1
+          fi
           git fetch origin +refs/pull/"$PULL_REQUEST"/head:local-pr-branch
           git checkout local-pr-branch
-          last_human_commit=$(git log -1 --author='^(?!github-actions\[bot\]).*$' --perl-regexp --format='%H')
+          last_human_commit=$(git log --format="%H %cn" | grep -v ' github-actions\[bot\]' | head -n1 | awk '{print $1}')
           if [[ -z "$last_human_commit" ]]; then
-            echo "No human commits found in PR #$PULL_REQUEST"
+            echo "No human commits found anywhere (bug?)"
+            exit 1
+          fi
+          if git merge-base --is-ancestor "$last_human_commit" "local-pr-branch" \
+            && ! git merge-base --is-ancestor "$last_human_commit" "$merge_commit"
+          then
+            echo "Found last human commit $last_human_commit"
+          else
+            echo "No human commits found before merge commit $merge_commit"
             exit 1
           fi
           echo "last_human_commit=$last_human_commit" >> "$GITHUB_OUTPUT"
