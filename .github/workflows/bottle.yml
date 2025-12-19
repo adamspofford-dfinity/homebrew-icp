@@ -39,7 +39,7 @@ jobs:
               | map(select(
                 .status != "COMPLETED"
                 or (
-                  .name | contains(":required")) 
+                  .name | contains(":required")
                   and .name != "confirm-publish:required"
                   and .conclusion != "SUCCESS"
                 )
