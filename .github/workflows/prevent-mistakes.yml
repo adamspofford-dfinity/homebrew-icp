@@ -22,8 +22,8 @@ jobs:
       - uses: actions/checkout@v6
       - name: Remove label
         run: |
-          labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')"
-          if [[ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q "^publish-to-tap$" <<< "$labels"; then
+          labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
+          if [[ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
             gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
             echo 'label_removed=true' >> "$GITHUB_OUTPUT"
           fi
