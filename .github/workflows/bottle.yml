@@ -53,7 +53,7 @@ jobs:
             echo "Pull request has pending status checks"
             exit 1
           fi
-          required_checks=$(jq -c '[.statusCheckRollup[].name | select(. | contains(":required"))]' <<< "$pr_status" | sort | uniq)
+          required_checks=$(jq -c '[.statusCheckRollup[].name | select(. | contains(":required"))] | unique' <<< "$pr_status")
           {
             echo "REQUIRED_CHECKS<<EOF"
             echo "$required_checks"
