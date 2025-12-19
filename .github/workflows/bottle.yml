@@ -75,7 +75,7 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PULL_REQUEST: ${{ github.event.pull_request.number }}
         run: |
-          GITHUB_SHA="$(git rev-parse HEAD)" \
+          GITHUB_SHA="$(git merge-base main HEAD)" \
             brew pr-pull --debug \
             --tap="$GITHUB_REPOSITORY" \
             --branch-okay "$PULL_REQUEST" \
