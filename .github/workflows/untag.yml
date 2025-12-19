@@ -1,0 +1,27 @@
+name: Remove stale publish-to-tap label
+on:
+  pull_request:
+    types:
+      - synchronize
+      - reopened
+      - edited
+jobs:
+  untag:
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'publish-to-tap') && github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Remove tag
+        run: |
+          if [ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]; then
+            gh pr edit "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --remove-label "publish-to-tap"
+          fi
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
