@@ -97,10 +97,8 @@ jobs:
 
       - name: Create commits
         run: |
-          (
-            cd "$BOTTLE_DIR" || exit 1
-            brew bottle --merge --write --debug ./*.bottle.json
-          )
+          cd "$BOTTLE_DIR" || exit 1
+          brew bottle --merge --write --debug ./*.bottle.json
         env:
           PULL_REQUEST: ${{ github.event.inputs.pull_request }}
           BOTTLE_DIR: ${{ steps.pull.outputs.bottle_path }}

@@ -20,6 +20,8 @@ jobs:
       contents: write
       issues: read
       pull-requests: read
+    env:
+      PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
     steps:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@main
@@ -31,18 +33,37 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Download bottles
+      - name: Find workflow run
+        id: find_run
         run: |
-          merge_commit=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)
-          pre_merge_commit=$(git rev-parse "${merge_commit}^1")
-          git checkout -b temp-upload "$merge_commit"
-          GITHUB_SHA="$pre_merge_commit" \
-            brew pr-pull --debug \
-            --tap="$GITHUB_REPOSITORY" \
-            --branch-okay "$PULL_REQUEST" \
-            --no-cherry-pick \
-            --no-commit \
-            --clean
+          git fetch origin +refs/pull/"$PULL_REQUEST"/head:local-pr-branch
+          git checkout local-pr-branch
+          last_human_commit=$(git log -1 --author='^(?!github-actions\[bot\]).*$' --perl-regexp --format='%H')
+          if [[ -z "$last_human_commit" ]]; then
+            echo "No human commits found in PR #$PULL_REQUEST"
+            exit 1
+          fi
+          echo "last_human_commit=$last_human_commit" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download bottles
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          workflow: tests.yml
+          ref: ${{ steps.find_run.outputs.last_human_commit }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: ^bottles_.*
+          name_is_regexp: true
+          path: ./.publish-bottles
+          allow_forks: true
+          use_unzip: true
+          merge_multiple: true
+
+      - name: Upload bottles
+        run: |
+          cd .publish-bottles || exit 1
+          brew pr-upload --debug --no-commit --upload-only
         env:
           PULL_REQUEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pull_request || github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
