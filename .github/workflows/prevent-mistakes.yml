@@ -18,9 +18,12 @@ jobs:
       contents: read
       issues: read
       pull-requests: write
+    outputs:
+      label_removed: ${{ steps.remove_label.outputs.label_removed }}
     steps:
       - uses: actions/checkout@v6
       - name: Remove label
+        id: remove_label
         run: |
           labels=$(gh pr view "$PULL_REQUEST" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
           if [[ "$(git log -1 --format='%cn')" != "github-actions[bot]" ]] && grep -q '^publish-to-tap$' <<< "$labels"; then
